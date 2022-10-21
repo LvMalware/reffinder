@@ -97,6 +97,7 @@ int main(int argc, char *argv[]) {
     }
 
     free(threads);
+    queue_cleanup(queue, NULL);
 
     return 0;
 }
