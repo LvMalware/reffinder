@@ -44,7 +44,7 @@ struct task_info {
 
 void *worker_func(void *tinfo) {
     struct task_info *task = (struct task_info *) tinfo;
-    pthread_t tid = pthread_self();
+    //pthread_t tid = pthread_self();
     void *data = NULL;
     struct queue *queue = task->queue;
     FILE *output = task->output;
@@ -52,12 +52,8 @@ void *worker_func(void *tinfo) {
 
     size_t i;
 
-    (void)tid;
-    (void)output;
     while ((data = queue_pop(queue)) != NULL) {
         param_vector_init(&params);
-        //
-        //
         if (get_reflected_params((char *) data, &params) > 0) {
             pthread_mutex_lock(&print_mutex);
             fprintf(output, "{\"url\":\"%s\",\"params\":", (char *) data);
@@ -65,10 +61,9 @@ void *worker_func(void *tinfo) {
                 fprintf(output, "%c\"%s\"", i == 0 ? '[' : ',', params.array[i].name);
             }
             fprintf(output, "]}\n");
+            fflush(output);
             pthread_mutex_unlock(&print_mutex);
         }
-        //
-        //
         free(data);
         param_vector_cleanup(&params);
     }
