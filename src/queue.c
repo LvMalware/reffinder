@@ -27,7 +27,7 @@ void *queue_pop(struct queue *q) {
 
     pthread_mutex_lock(&q->mutex);
     while (q->size == 0) {
-        if (q->end && q->size == 0) {
+        if (q->end) {
             pthread_mutex_unlock(&q->mutex);
             return NULL;
         }
@@ -62,11 +62,10 @@ void queue_cleanup(struct queue *q, void (*cb)(void *)) {
 struct queue *queue_push(struct queue *q, void *data) {
     if (!q) q = queue_init();
     struct queue_item *item = malloc(1 * sizeof(*item));
-    *item = (struct queue_item) {
-        data,
-        NULL
-    };
+    item->data = data;
+    item->next = NULL;
     pthread_mutex_lock(&q->mutex);
+    while (q->size > QUEUE_MAX_PENDING) pthread_cond_wait(&q->cond_get, &q->mutex);
     if (q->last == NULL) {
         q->first = item;
     } else {

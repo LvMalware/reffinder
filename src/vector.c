@@ -1,71 +1,56 @@
 #include "vector.h"
 
-struct vector * vector_init(size_t initial_size) {
-    if (initial_size < MIN_ARRAY_SIZE) initial_size = MIN_ARRAY_SIZE;
-    struct vector * vec = malloc(1 * sizeof(*vec));
-    *vec = (struct vector) {
-        0,
-        initial_size,
-        calloc(initial_size, sizeof(*vec->array))
-    };
-    return vec;
+static inline int vector_ensure_space(struct param_vector_s * const vec, size_t space_needed) {
+    if (vec->capacity <= space_needed) {
+        vec->capacity <<= 1;
+        void *temp = realloc(vec->array, vec->capacity * sizeof(vec->array[0]));
+        if (temp == NULL) return 0;
+        vec->array = temp;
+    }
+    return 1;
 }
 
-void vector_cleanup(struct vector *vec) {
-    if (!vec) return;
-    if (vec->array) free(vec->array);
-    free(vec);
-}
-
-static inline void vector_ensure_space (struct vector *vec, size_t space_needed) {
-    if (vec->real_size <= space_needed) {
-        vec->real_size <<= 1;
-        vec->array = realloc(vec->array, vec->real_size * sizeof(vec->array[0]));
+static inline void vector_shrink_space(struct param_vector_s * const vec) {
+    if (vec->capacity > (vec->size << 2) && vec->capacity > MIN_ARRAY_SIZE) {
+        vec->capacity >>= 1;
+        vec->array = realloc(vec->array, vec->capacity * sizeof(vec->array[0]));
     }
 }
 
-static inline void vector_shrink_space (struct vector *vec) {
-    if (vec->real_size > (vec->size << 2) && vec->real_size > MIN_ARRAY_SIZE) {
-        vec->real_size >>= 1;
-        vec->array = realloc(vec->array, vec->real_size * sizeof(vec->array[0]));
-    }
+static inline void get_param_clean(struct get_param_s * const p) {
+    free(p->name);
+    free(p->value);
+    p->value = p->name = NULL;
 }
 
-struct vector * vector_insert(struct vector *vec, void * val) {
-    if (!vec) vec = vector_init(0);
-    vector_ensure_space(vec, vec->size + 1);
-    vec->array[vec->size ++] = val;
-    return vec;
+void param_vector_cleanup(struct param_vector_s * const vec) {
+    if (vec == NULL) return;
+    size_t i;
+    for (i = 0; i < vec->size; i ++)
+        get_param_clean(&(vec->array[i]));
+    free(vec->array);
+    vec->array = NULL;
+    vec->size  = vec->capacity = 0;
 }
 
-struct vector * vector_insert_at(struct vector * vec, void * val, size_t index) {
-    if (!vec) vec = vector_init(0);
-    vector_ensure_space(vec, vec->size + 1);
-    if (index < vec->size) {
-        memmove(&vec->array[index + 1],
-                &vec->array[index],
-                (vec->size - index) * sizeof(vec->array[0]));
-        vec->array[index] = val;
-    } else {
-        vec->array[vec->size] = val;
+void param_vector_init(struct param_vector_s * const vec) {
+    if (vec == NULL) return;
+    vec->array = calloc(MIN_ARRAY_SIZE, sizeof(vec->array[0]));
+    if (vec->array == NULL) return;
+    vec->size = 0;
+    vec->capacity = MIN_ARRAY_SIZE;
+}
+
+void param_vector_insert(struct param_vector_s * const vec,
+                         char * const param_name, size_t name_len,
+                         char * const param_value, size_t value_len)
+{
+    if (!vec->array || !vector_ensure_space(vec, vec->size + 1)) return;
+    if ((vec->array[vec->size].name = strndup(param_name, name_len)) == NULL)
+        return;
+    if ((vec->array[vec->size].value = strndup(param_value, value_len)) == NULL) {
+        free(vec->array[vec->size].name);
+        return;
     }
     vec->size ++;
-    return vec;
 }
-
-struct vector * vector_remove_at(struct vector * vec, size_t index) {
-    if (vec && index < vec->size) {
-        memmove(&vec->array[index],
-                &vec->array[index - 1],
-                (vec->size - index) * sizeof(vec->array[0]));
-        vec->size --;
-        vector_shrink_space(vec);
-    }
-    return vec;
-}
-
-void * vector_pop(struct vector * vec) {
-    if (!vec || vec->size == 0) return NULL;
-    return vec->array[-- vec->size];
-}
-

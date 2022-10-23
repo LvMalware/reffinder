@@ -1,8 +1,12 @@
 #ifndef _QUEUE_H
 #define _QUEUE_H
 
+#include "memdebug.h"
+
 #include <stdlib.h>
 #include <pthread.h>
+
+#define QUEUE_MAX_PENDING 10000
 
 struct queue_item {
     void *data;

@@ -3,28 +3,24 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include "memdebug.h"
 
 #define MIN_ARRAY_SIZE 0x20
 
-#define VECTOR_INDEX(vec, ind) \
-    (ind < vec->size) ? vec->array[ind] : NULL
-
-#define VECTOR_FIRST(vec) VECTOR_INDEX(vec, 0) 
-
-#define VECTOR_LAST(vec) \
-    (vec->size > 0) ? vec->array[vec->size - 1] : NULL
-
-struct vector {
-    size_t size;
-    size_t real_size;
-    void **array;
+struct get_param_s {
+    char *name;
+    char *value;
 };
 
-void * vector_pop(struct vector *);
-struct vector * vector_init(size_t);
-void vector_cleanup(struct vector *);
-struct vector * vector_insert(struct vector *, void *);
-struct vector * vector_remove_at(struct vector *, size_t);
-struct vector * vector_insert_at(struct vector *, void *, size_t);
+struct param_vector_s {
+    size_t size;
+    size_t capacity;
+    struct get_param_s *array;
+};
+
+void param_vector_init(struct param_vector_s * const);
+void param_vector_cleanup(struct param_vector_s * const);
+void param_vector_insert(struct param_vector_s * const,
+                   char * const, size_t, char * const, size_t);
 
 #endif /* vector.h */
